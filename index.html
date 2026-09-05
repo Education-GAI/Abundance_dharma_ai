@@ -54,6 +54,37 @@
   document.getElementById('finishBtn').onclick=()=>{toast('Outcome saved privately with consent');setTimeout(()=>show(7),650)};document.getElementById('eraseBtn').onclick=()=>toast('Demo record erased - the operator view is unchanged');document.getElementById('downloadHtml').onclick=()=>{const blob=new Blob([document.documentElement.outerHTML],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Abundance_Dharma_AI_V1_Mock_Flow.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
   const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 </script>
+<script>
+window.DHARMA_ANALYTICS = window.DHARMA_ANALYTICS || { webhookToken: '047ef6af-4154-4810-8e4a-e77c0e4be351' };
+</script>
+<script src="analytics-config.js"></script>
+<script>
+(function () {
+  var token = (window.DHARMA_ANALYTICS && window.DHARMA_ANALYTICS.webhookToken) || '';
+  if (!token || /analytics\.html$/i.test(location.pathname)) return;
+  try { if (sessionStorage.getItem('dharma_visit_logged')) return; } catch (e) {}
+  function uid() {
+    try {
+      var id = localStorage.getItem('dharma_vid');
+      if (!id) { id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random(); localStorage.setItem('dharma_vid', id); }
+      return id;
+    } catch (err) { return String(Date.now()); }
+  }
+  var q = new URLSearchParams({
+    src: 'dharma',
+    vid: uid(),
+    page: (location.pathname || '/') + (location.search || ''),
+    ref: document.referrer || 'direct',
+    screen: (screen.width || 0) + 'x' + (screen.height || 0),
+    lang: navigator.language || '',
+    host: location.host || location.protocol.replace(':', ''),
+    href: String(location.href || '').slice(0, 180)
+  });
+  var url = 'https://webhook.site/' + token + '?' + q.toString();
+  try { new Image().src = url; } catch (e1) {}
+  try { sessionStorage.setItem('dharma_visit_logged', '1'); } catch (e4) {}
+})();
+</script>
 
 
 </body></html>
