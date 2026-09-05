@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Visitor analytics — Abundance</title>
+  <style>
+    :root{--ink:#172522;--muted:#64736f;--paper:#f5f8f3;--card:#fff;--line:#dce6df;--green:#176b4d;--green2:#2f9670;--mint:#dff1e7;--gold:#d59b3d;--navy:#163449;--danger:#a44343;--shadow:0 18px 50px rgba(24,55,43,.12)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 8% 0%,#e0f0e7 0,transparent 32%),var(--paper);color:var(--ink);min-height:100vh}
+    button,input{font:inherit}
+    .hidden{display:none !important}
+    .login{min-height:100vh;display:grid;place-items:center;padding:24px}
+    .login-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:36px 32px}
+    .mark{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#9ed2ae,#d9b15e);color:#13392f;font-size:22px;font-weight:800;margin-bottom:16px}
+    .login-card h1{font:700 28px/1.2 Georgia,serif;margin:0 0 8px}
+    .login-card p{color:var(--muted);margin:0 0 22px;line-height:1.5}
+    label{display:block;font-size:13px;font-weight:700;margin-bottom:8px}
+    input[type=password],input[type=search],input[type=text]{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff}
+    .primary,.secondary,.danger{border:0;border-radius:12px;padding:12px 16px;font-weight:750;cursor:pointer}
+    .primary{background:var(--green);color:#fff;width:100%;margin-top:14px}
+    .primary:hover{background:#0e563d}
+    .secondary{background:#edf2ef;color:var(--ink)}
+    .danger{background:#f8ecec;color:var(--danger)}
+    .err{color:var(--danger);font-size:13px;min-height:18px;margin-top:10px}
+    .app{display:none;min-height:100vh}
+    .app.show{display:block}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 28px;background:#13392f;color:#fff}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand small{display:block;color:#bcd2ca;margin-top:2px}
+    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .top .secondary,.top .danger,.top .primary{width:auto;margin:0;padding:9px 12px}
+    .top a.secondary{display:inline-flex;align-items:center;text-decoration:none}
+    .top .primary{background:#8ec7a0;color:#13392f}
+    .wrap{max-width:1180px;margin:0 auto;padding:24px 18px 50px}
+    .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+    .metric{background:#fff;border:1px solid var(--line);border-radius:17px;padding:16px 18px;box-shadow:0 8px 24px rgba(24,55,43,.06)}
+    .metric small{color:var(--muted)}
+    .metric b{display:block;font:700 28px Georgia,serif;margin:8px 0 0}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}
+    .toolbar input{max-width:320px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700}
+    .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:auto;box-shadow:var(--shadow)}
+    table{width:100%;border-collapse:collapse;min-width:920px}
+    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+    th{background:#f3f7f4;position:sticky;top:0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+    td.ip{font-family:ui-monospace,Consolas,monospace;font-weight:700}
+    .empty{padding:48px 24px;text-align:center;color:var(--muted);line-height:1.6}
+    .micro{font-size:12px;color:var(--muted)}
+    .loc b{display:block}
+    .status{font-size:13px;color:#bcd2ca}
+    a.map{color:var(--green);font-weight:700;text-decoration:none}
+    @media(max-width:860px){.metrics{grid-template-columns:1fr 1fr}.top{flex-direction:column;align-items:flex-start}}
+    @media(max-width:520px){.metrics{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="login" id="loginView">
+    <form class="login-card" id="loginForm">
+      <div class="mark">A</div>
+      <h1>Visitor analytics</h1>
+      <p>This page is private. Enter the operator password to see live visitor IPs and location logs.</p>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button class="primary" type="submit">Unlock dashboard</button>
+      <div class="err" id="loginErr"></div>
+    </form>
+  </div>
+
+  <div class="app" id="appView">
+    <header class="top">
+      <div class="brand">
+        <div class="mark" style="margin:0">A</div>
+        <div>
+          <b>Abundance analytics</b>
+          <small>Live visitor log · GitHub Pages cannot provide server IPs</small>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="status" id="status">Loading…</span>
+        <button class="primary" id="refreshBtn" type="button">Refresh</button>
+        <button class="secondary" id="exportBtn" type="button">Export CSV</button>
+        <a class="secondary" id="rawLogLink" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Raw inbox</a>
+        <button class="secondary" id="logoutBtn" type="button">Lock</button>
+      </div>
+    </header>
+    <div class="wrap">
+      <div class="metrics">
+        <div class="metric"><small>Total visits</small><b id="mTotal">0</b></div>
+        <div class="metric"><small>Unique visitors</small><b id="mUnique">0</b></div>
+        <div class="metric"><small>Unique IPs</small><b id="mIps">0</b></div>
+        <div class="metric"><small>Countries</small><b id="mCountries">0</b></div>
+        <div class="metric"><small>Today</small><b id="mToday">0</b></div>
+      </div>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Search IP, city, ISP, device…">
+        <div class="chips" id="rangeChips">
+          <button class="chip active" data-range="all" type="button">All time</button>
+          <button class="chip" data-range="today" type="button">Today</button>
+          <button class="chip" data-range="7d" type="button">Last 7 days</button>
+        </div>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>IP address</th>
+              <th>Location</th>
+              <th>ISP / network</th>
+              <th>Device</th>
+              <th>Page / referrer</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty hidden" id="empty">No visits yet. Open the public homepage in another tab, wait a few seconds, then click Refresh.</div>
+      </div>
+      <p class="micro" style="margin-top:16px;text-align:center">GitHub Pages cannot share visitor IPs. This dashboard is password-protected. Change the password hash in <code>analytics-config.js</code> after you deploy. Free visit storage expires after 7 days unless you create your own webhook.site URL and paste the token ID there.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="analytics-config.js"></script>
+  <script>
+    const cfg = window.DHARMA_ANALYTICS;
+    const loginView = document.getElementById('loginView');
+    const appView = document.getElementById('appView');
+    const loginErr = document.getElementById('loginErr');
+    let visits = [];
+    let range = 'all';
+    let timer = null;
+
+    function deviceInfo(ua) {
+      ua = ua || '';
+      const mobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+      let browser = 'Browser';
+      if (/Edg\//.test(ua)) browser = 'Edge';
+      else if (/Chrome\//.test(ua)) browser = 'Chrome';
+      else if (/Firefox\//.test(ua)) browser = 'Firefox';
+      else if (/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+      let os = 'Unknown OS';
+      if (/Windows/.test(ua)) os = 'Windows';
+      else if (/Mac OS X/.test(ua)) os = 'macOS';
+      else if (/Android/.test(ua)) os = 'Android';
+      else if (/iPhone|iPad/.test(ua)) os = 'iOS';
+      else if (/Linux/.test(ua)) os = 'Linux';
+      return { kind: mobile ? 'Mobile' : 'Desktop', browser, os };
+    }
+
+    function startOfToday() {
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      return d;
+    }
+
+    function inRange(v) {
+      const t = parseTime(v.time);
+      if (range === 'today') return t >= startOfToday();
+      if (range === '7d') return t >= new Date(Date.now() - 7*24*60*60*1000);
+      return true;
+    }
+
+    function filtered() {
+      const q = (document.getElementById('search').value || '').trim().toLowerCase();
+      return visits.filter(function (v) {
+        if (!inRange(v)) return false;
+        if (!q) return true;
+        return JSON.stringify(v).toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function parseTime(iso) {
+      if (!iso) return new Date(NaN);
+      const raw = String(iso);
+      return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : raw.replace(' ', 'T') + 'Z');
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '—';
+      const d = parseTime(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleString();
+    }
+
+    function locationText(v) {
+      return [v.city, v.region, v.country].filter(Boolean).join(', ') || 'Unknown location';
+    }
+
+    function render() {
+      const list = filtered();
+      const rows = document.getElementById('rows');
+      const empty = document.getElementById('empty');
+      document.getElementById('mTotal').textContent = visits.length;
+      document.getElementById('mUnique').textContent = new Set(visits.map(function (v) { return v.visitorId || v.ip; })).size;
+      document.getElementById('mIps').textContent = new Set(visits.map(function (v) { return v.ip; }).filter(Boolean)).size;
+      document.getElementById('mCountries').textContent = new Set(visits.map(function (v) { return v.country || v.countryCode; }).filter(Boolean)).size;
+      document.getElementById('mToday').textContent = visits.filter(function (v) { return parseTime(v.time) >= startOfToday(); }).length;
+
+      if (!list.length) {
+        rows.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      rows.innerHTML = list.map(function (v) {
+        const d = deviceInfo(v.ua);
+        const map = (v.lat && v.lon) ? '<br><a class="map" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + encodeURIComponent(v.lat + ',' + v.lon) + '">Open map</a>' : '';
+        return '<tr>' +
+          '<td>' + fmtTime(v.time) + '<div class="micro">' + (v.tz || '') + '</div></td>' +
+          '<td class="ip">' + (v.ip || '—') + '<div class="micro">' + (v.type || '') + '</div></td>' +
+          '<td class="loc"><b>' + (v.flag ? v.flag + ' ' : '') + locationText(v) + '</b><span class="micro">' + [v.postal, v.countryCode].filter(Boolean).join(' · ') + '</span>' + map + '</td>' +
+          '<td>' + (v.isp || v.org || '—') + '</td>' +
+          '<td>' + d.kind + ' · ' + d.browser + '<div class="micro">' + d.os + ' · ' + (v.screen || '') + ' · ' + (v.lang || '') + '</div></td>' +
+          '<td>' + (v.page || '/') + '<div class="micro">' + (v.referrer || '(direct)') + '</div></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function extractJson(text) {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start < 0 || end < start) throw new Error('No JSON in log feed');
+      return JSON.parse(text.slice(start, end + 1));
+    }
+
+    function flagEmoji(code) {
+      if (!code || code.length !== 2) return '';
+      return String.fromCodePoint(...code.toUpperCase().split('').map(function (c) { return 127397 + c.charCodeAt(0); }));
+    }
+
+    function mapRequest(r) {
+      const q = r.query || {};
+      return {
+        id: r.uuid,
+        visitorId: q.vid || r.ip,
+        time: r.created_at,
+        ip: q.ipq || r.ip || '',
+        type: '',
+        city: r.city || '',
+        region: r.region || '',
+        country: r.country || '',
+        countryCode: r.country_code || '',
+        isp: q.isp || '',
+        lat: q.lat,
+        lon: q.lon,
+        ua: r.user_agent || '',
+        lang: q.lang || '',
+        screen: q.screen || '',
+        referrer: q.ref || '(direct)',
+        page: q.page || '/',
+        flag: flagEmoji(r.country_code),
+        tz: ''
+      };
+    }
+
+    async function loadLogs() {
+      document.getElementById('status').textContent = 'Refreshing…';
+      try {
+        const listUrl = 'https://webhook.site/token/' + cfg.webhookToken + '/requests?sorting=newest&per_page=100';
+        const res = await fetch('https://r.jina.ai/' + listUrl, { cache: 'no-store', credentials: 'omit' });
+        if (!res.ok) throw new Error('feed ' + res.status);
+        const data = extractJson(await res.text());
+        const rows = Array.isArray(data.data) ? data.data : [];
+        visits = rows
+          .filter(function (r) { return r && r.type !== 'email' && !(r.query && r.query.ping); })
+          .map(mapRequest);
+        document.getElementById('status').textContent = visits.length + ' records · updated ' + new Date().toLocaleTimeString();
+        render();
+      } catch (e) {
+        document.getElementById('status').textContent = 'Could not load logs';
+      }
+    }
+
+    function unlock() {
+      loginView.classList.add('hidden');
+      appView.classList.add('show');
+      loadLogs();
+      timer = setInterval(loadLogs, 20000);
+    }
+
+    function lock() {
+      try { sessionStorage.removeItem(cfg.sessionKey); } catch (e) {}
+      clearInterval(timer);
+      appView.classList.remove('show');
+      loginView.classList.remove('hidden');
+      document.getElementById('password').value = '';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      loginErr.textContent = '';
+      const entered = document.getElementById('password').value;
+      try {
+        const hash = await sha256Hex(entered);
+        if (hash !== cfg.passwordHash) {
+          loginErr.textContent = 'Wrong password.';
+          return;
+        }
+        try { sessionStorage.setItem(cfg.sessionKey, '1'); } catch (err) {}
+        unlock();
+      } catch (err) {
+        loginErr.textContent = 'This page needs HTTPS or localhost to unlock.';
+      }
+    });
+
+    document.getElementById('logoutBtn').onclick = lock;
+    document.getElementById('refreshBtn').onclick = loadLogs;
+    document.getElementById('search').oninput = render;
+    document.getElementById('rangeChips').onclick = function (e) {
+      const btn = e.target.closest('[data-range]');
+      if (!btn) return;
+      range = btn.dataset.range;
+      document.querySelectorAll('#rangeChips .chip').forEach(function (c) { c.classList.toggle('active', c === btn); });
+      render();
+    };
+
+    document.getElementById('exportBtn').onclick = function () {
+      const list = filtered();
+      const headers = ['time','ip','city','region','country','isp','page','referrer','ua'];
+      const csv = [headers.join(',')].concat(list.map(function (v) {
+        return headers.map(function (h) {
+          return '"' + String(v[h] || '').replace(/"/g, '""') + '"';
+        }).join(',');
+      })).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'dharma-visitor-log.csv';
+      a.click();
+    };
+
+    document.getElementById('rawLogLink').href = 'https://webhook.site/#!/' + cfg.webhookToken;
+
+    try {
+      if (sessionStorage.getItem(cfg.sessionKey) === '1') unlock();
+    } catch (e) {}
+  </script>
+</body>
+</html>
